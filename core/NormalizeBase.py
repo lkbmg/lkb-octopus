@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
 
-
 class ABCNormalizer(ABC):
     """
     Abstract base class to enforce input normalization for adapters.
     """
 
     @staticmethod
+    @abstractmethod
     def normalize_input(data):
         """
         Normalize input to a standard list of dictionaries.
@@ -20,12 +20,7 @@ class ABCNormalizer(ABC):
         Raises:
             ValueError: If the input is not a dict or list[dict].
         """
-        if isinstance(data, dict):
-            return [data]  # Wrap single dict in a list
-        elif isinstance(data, list) and all(isinstance(item, dict) for item in data):
-            return data
-        else:
-            raise ValueError("Input must be a dictionary or a list of dictionaries.")
+        pass
 
     @abstractmethod
     def from_normalized(self, data):

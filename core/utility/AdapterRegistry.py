@@ -1,5 +1,7 @@
-from core.Adapters.JSON import JSONAdapter
-from core.Adapters.XML import XMLAdapter
+from core.io.JSON import JSONAdapter
+from core.io.XML import XMLAdapter
+
+import sys, os
 
 class Registry:
     """Centralized registry for managing components (e.g., adapters, schemas)."""

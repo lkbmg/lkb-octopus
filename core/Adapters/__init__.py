@@ -1,8 +1,6 @@
-from .Arrow import ArrowAdapter
-from .Numpy import NumpyAdapter
-from .Pandas import PandasAdapter
-from .SQL import SQLAdapter
-from .JSON import JSONAdapter
-from .XML import XMLAdapter
+from core.Adapters import Converters, MacOSExecutor, MacOSLaunchctl, MacOSName, MacOSNetwork, MacOSSoftwareUpdate, \
+MacOSDefaults, MacOSPlistBuddy, MacOSPlutil
 
-#__all__ = ["ArrowAdapter", "NumpyAdapter", "PandasAdapter", "SQLAdapter", "JSONAdapter", "XMLAdapter"]
+__all__ = ["Converters", 
+           "MacOSExecutor", "MacOSLaunchctl", "MacOSName", "MacOSNetwork" "MacOSSoftwareUpdate", 
+           "MacOSDefaults", "MacOSPlistBuddy", "MacOSPlutil"]

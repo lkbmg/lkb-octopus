@@ -1,11 +1,48 @@
-import json
-from core.Normalizer import ABCNormalizer
-from core.DataTypes.Exceptions import ConversionError
+import json, sys, os, logging
+from core.NormalizeBase import ABCNormalizer
+from core.utility.Normalize import Normalization
 from core.DataTypes.Schema import SchemaInference
+from core.Exceptions import ConversionError, NormalizationError
 
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)+'/../'))
 
 class JSONAdapter(ABCNormalizer):
-    """Adapter for converting between DataType and JSON, with schema inference."""
+    """Adapter for handling JSON data."""
+
+    @staticmethod
+    def normalize_input(data):
+        """
+        Normalize input JSON data.
+
+        Args:
+            data (dict or list[dict]): The data to normalize.
+
+        Returns:
+            list[dict]: Normalized list of dictionaries.
+        """
+        try:
+            # Normalize whitespace and ensure it's a list of dictionaries
+            data = Normalization.normalize_json(data)
+            list_data = Normalization.normalize_list(data)
+
+            return Normalization.normalize_input(list_data) 
+        except NormalizationError as e:
+            raise ConversionError(f"Error normalizing input JSON: {e}")
+
+    def from_normalized(self, data):
+        """
+        Convert normalized data back to JSON string.
+
+        Args:
+            data (list[dict]): Normalized list of dictionaries.
+
+        Returns:
+            str: JSON string.
+        """
+        try:
+            return json.dumps(data, indent=4)
+        except Exception as e:
+            raise ConversionError(f"Error converting normalized data to JSON: {e}")
 
     @staticmethod
     def to_json(data):
@@ -17,11 +54,14 @@ class JSONAdapter(ABCNormalizer):
 
         Returns:
             tuple: (JSON string representation of the data, inferred schema)
+
+        Raises:
+            ConversionError: If conversion fails.
         """
         try:
             normalized_data = JSONAdapter.normalize_input(data)
             schema = SchemaInference.infer_schema(normalized_data)
-            json_string = json.dumps(normalized_data)
+            json_string = json.dumps(normalized_data, ensure_ascii=False, indent=4)
             return json_string, schema
         except Exception as e:
             raise ConversionError(f"Error converting to JSON: {e}")
@@ -38,6 +78,9 @@ class JSONAdapter(ABCNormalizer):
             tuple: (data, inferred schema)
                 - data: Parsed JSON data (dict or list[dict]).
                 - inferred schema: Inferred schema as a DataType instance.
+
+        Raises:
+            ConversionError: If decoding or schema inference fails.
         """
         try:
             parsed_data = json.loads(json_data)
@@ -60,10 +103,13 @@ class JSONAdapter(ABCNormalizer):
 
         Returns:
             DataType: Inferred schema.
+
+        Raises:
+            ConversionError: If saving to file fails.
         """
         try:
             json_string, schema = JSONAdapter.to_json(data)
-            with open(file_path, 'w') as file:
+            with open(file_path, 'w', encoding='utf-8') as file:
                 file.write(json_string)
             return schema
         except Exception as e:
@@ -81,12 +127,15 @@ class JSONAdapter(ABCNormalizer):
             tuple: (data, inferred schema)
                 - data: Parsed JSON data (dict or list[dict]).
                 - inferred schema: Inferred schema as a DataType instance.
+
+        Raises:
+            ConversionError: If loading from file fails.
         """
         try:
-            with open(file_path, 'r') as file:
+            with open(file_path, 'r', encoding='utf-8') as file:
                 json_string = file.read()
             return JSONAdapter.from_json(json_string)
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             raise ConversionError(f"File not found: {file_path}")
         except Exception as e:
             raise ConversionError(f"Error loading JSON from file: {e}")
@@ -101,6 +150,9 @@ class JSONAdapter(ABCNormalizer):
 
         Returns:
             DataType: Inferred schema.
+
+        Raises:
+            ConversionError: If schema inference fails.
         """
         try:
             if isinstance(data, str):
@@ -120,6 +172,9 @@ class JSONAdapter(ABCNormalizer):
 
         Returns:
             dict: Descriptive schema representation.
+
+        Raises:
+            ConversionError: If schema description fails.
         """
         try:
             schema = JSONAdapter.infer_schema(data)
@@ -137,4 +192,7 @@ class JSONAdapter(ABCNormalizer):
         Returns:
             str: JSON string representation.
         """
-        return json.dumps(data, indent=4)
+        try:
+            return json.dumps(data, indent=4, ensure_ascii=False)
+        except Exception as e:
+            raise ConversionError(f"Error converting normalized data to JSON: {e}")

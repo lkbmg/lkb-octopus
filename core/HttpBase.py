@@ -7,17 +7,6 @@ Description: Base class for HTTP operations.
 """
 from abc import ABC, abstractmethod
 
-
-
-class HttpRequestError(Exception):
-    """Custom exception for HTTP request errors."""
-    def __init__(self, url, status_code, message):
-        super().__init__(f"Request to '{url}' failed with status code {status_code}: {message}")
-        self.url = url
-        self.status_code = status_code
-        self.message = message
-
-
 class BaseHttp(ABC):
     def __init__(self, base_url, verify_ssl=True):
         self.base_url = base_url.rstrip("/")

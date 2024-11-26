@@ -1,23 +1,20 @@
-"""
-HttpExecutor.py
-Written by pollardm
-Written: 11/19/24
-Description: HTTP executor for making REST API requests.
-"""
-import logging
-import requests
+import sys, os, logging, requests, datetime, pytz
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from .HttpBase import BaseHttp, HttpRequestError
+from core.HttpBase import BaseHttp
+from core.Exceptions import HttpRequestError
+from core.utility.Normalize import Normalization
 
+
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)+'/../'))
 
 class HttpExecutor(BaseHttp):
     def __init__(self, base_url, verify_ssl=True):
         super().__init__(base_url, verify_ssl)
         self.session = self._initialize_session()
+        self.base_url = Normalization.normalize_url(base_url)
 
     def _initialize_session(self):
-        """Initialize a requests session with retry logic."""
         session = requests.Session()
         retries = Retry(
             total=3,
@@ -31,25 +28,18 @@ class HttpExecutor(BaseHttp):
         return session
 
     def request(self, endpoint, method="GET", headers=None, params=None, data=None, json_data=None, auth=None):
-        """
-        Make an HTTP request.
+        # Normalize and validate inputs
+        endpoint = Normalization.normalize_whitespace(endpoint)
+        headers = Normalization.normalize_dict(headers) if headers else {}
+        params = Normalization.normalize_dict(params) if params else {}
+        json_data = Normalization.normalize_json(json_data) if json_data else None
 
-        Args:
-            endpoint (str): The API endpoint to hit.
-            method (str): HTTP method (GET, POST, etc.).
-            headers (dict): Request headers.
-            params (dict): Query parameters.
-            data (dict): Form data.
-            json_data (dict): JSON payload.
-            auth (tuple): Authentication credentials.
+        # Check if `endpoint` is a full URL or a relative path
+        if endpoint.startswith("http://") or endpoint.startswith("https://"):
+            url = endpoint  # Use the full URL directly
+        else:
+            url = f"{self.base_url}/{endpoint.lstrip('/')}"
 
-        Returns:
-            Response: The HTTP response object.
-
-        Raises:
-            HttpRequestError: If the request fails.
-        """
-        url = f"{self.base_url}/{endpoint.lstrip('/')}"
         try:
             response = self.session.request(
                 method=method,
@@ -69,5 +59,4 @@ class HttpExecutor(BaseHttp):
             raise HttpRequestError(url, getattr(e.response, "status_code", None), str(e)) from e
 
     def close(self):
-        """Close the requests session."""
         self.session.close()
