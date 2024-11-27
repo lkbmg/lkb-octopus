@@ -1,7 +1,7 @@
 from decimal import Decimal, InvalidOperation
 from typing import Any, List, Dict
 from datetime import datetime, date, time, timedelta
-from core.Common import DataType
+from core.DataTypes.Common import DataType
 from core.Exceptions import DataTypeError, ConversionError
 from core.DataTypes.Types import (
     NestedType, ListType, StructType, NestedNullType, 
@@ -11,22 +11,36 @@ from core.DataTypes.Types import (
 )
 
 class SchemaHelper:
-    """Utility class for shared parsing logic."""
+    """Utility class for type checks and conversions."""
     
     @staticmethod
-    def is_integer(value: str) -> bool:
-        return value.isdigit()
-    
+    def is_integer(value: Any) -> bool:
+        """Check if a value is an integer."""
+        try:
+            return isinstance(value, int) and not isinstance(value, bool)
+        except (ValueError, TypeError):
+            return False
+
     @staticmethod
-    def is_decimal(value: str) -> bool:
+    def is_float(value: Any) -> bool:
+        """Check if a value is a float."""
+        try:
+            return isinstance(value, float) or isinstance(value, Decimal)
+        except (ValueError, TypeError):
+            return False
+
+    @staticmethod
+    def is_decimal(value: Any) -> bool:
+        """Check if a value is a Decimal."""
         try:
             Decimal(value)
             return True
         except InvalidOperation:
             return False
-    
+
     @staticmethod
     def is_datetime(value: str) -> bool:
+        """Check if a value is a datetime string."""
         formats = ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d"]
         for fmt in formats:
             try:
@@ -55,49 +69,54 @@ class SchemaHelper:
 
 
 class SchemaInference:
-    """Class for inferring data types and schemas from raw data."""
+    """Class for inferring data types."""
 
     @staticmethod
-    def infer_type(data: Any) -> DataType:
+    def infer_type(value: Any) -> DataType:
         """
-        Infer the DataType for a single element.
-
-        Args:
-            data (Any): The element for which to infer the type.
-
-        Returns:
-            DataType: The inferred DataType.
+        Infer the type of a single value.
         """
-        if data is None:
+        if value is None:
             return NestedNullType()
-        elif isinstance(data, bool):
+        if isinstance(value, bool):
             return BooleanType()
-        elif isinstance(data, int):
+        if SchemaHelper.is_integer(value):
             return IntegerType()
-        elif isinstance(data, float):
-            return NumericNullType() if data != data else FloatType()  # NaN handling
-        elif isinstance(data, Decimal):
+        if SchemaHelper.is_float(value):
+            return FloatType()
+        if SchemaHelper.is_decimal(value):
             return DecimalType()
-        elif isinstance(data, str):
-            if SchemaHelper.is_integer(data):
-                return IntegerType()
-            if SchemaHelper.is_decimal(data):
-                return DecimalType()
-            if SchemaHelper.is_datetime(data):
+        if isinstance(value, str):
+            if SchemaHelper.is_datetime(value):
                 return DatetimeType()
             return StringType()
-        elif isinstance(data, date) and not isinstance(data, datetime):
+        if isinstance(value, date):
             return DateType()
-        elif isinstance(data, datetime):
-            return DatetimeType()
-        elif isinstance(data, list):
-            element_type = SchemaInference._unify_types([SchemaInference.infer_type(el) for el in data])
-            return ListType(element_type)
-        elif isinstance(data, dict):
-            fields = {k: SchemaInference.infer_type(v) for k, v in data.items()}
+        if isinstance(value, list):
+            element_types = [SchemaInference.infer_type(el) for el in value]
+            unified_type = SchemaInference._unify_types(element_types)
+            return ListType(unified_type)
+        if isinstance(value, dict):
+            fields = {k: SchemaInference.infer_type(v) for k, v in value.items()}
             return StructType(fields)
-        else:
-            raise DataTypeError(f"Unsupported data type: {type(data)}")
+        raise ValueError(f"Cannot infer type for value: {value}")
+
+    @staticmethod
+    def _unify_types(types: List[DataType]) -> DataType:
+        """
+        Combine a list of types into a single type.
+        """
+        unique_types = list(set(types))
+
+        if len(unique_types) == 1:
+            return unique_types[0]
+
+        # Handle numeric compatibility
+        if all(isinstance(t, NumericType) for t in unique_types):
+            return FloatType()
+
+        # Handle string fallback for mixed types
+        return StringType()
 
     @staticmethod
     def infer_schema(data: Any) -> DataType:
@@ -123,38 +142,6 @@ class SchemaInference:
             return StructType(fields)
         else:
             return SchemaInference.infer_type(data)
-
-    @staticmethod
-    def _unify_types(types: List[DataType]) -> DataType:
-        unique_types = list(set(types))
-
-        if len(unique_types) == 1:
-            return unique_types[0]
-
-        # Handle null types
-        null_types = [NestedNullType(), NumericNullType(), TemporalNullType(), CategoricalNullType()]
-        non_null_types = [t for t in unique_types if t not in null_types]
-        if len(non_null_types) == 1:
-            return non_null_types[0]
-
-        # Handle mixed list types
-        if all(isinstance(t, ListType) for t in unique_types):
-            inner_types = [t.inner_type for t in unique_types if not isinstance(t.inner_type, NestedNullType)]
-            unified_inner = SchemaInference._unify_types(inner_types) if inner_types else NestedNullType()
-            return ListType(unified_inner)
-
-        # Handle nested structs
-        if all(isinstance(t, StructType) for t in unique_types):
-            unified_fields = {}
-            all_fields = [t.fields for t in unique_types]
-            field_keys = set(k for fields in all_fields for k in fields.keys())
-            for key in field_keys:
-                field_types = [fields[key] for fields in all_fields if key in fields]
-                unified_fields[key] = SchemaInference._unify_types(field_types)
-            return StructType(unified_fields)
-
-        # Fallback to StringType for mixed types
-        return StringType()
 
     @staticmethod
     def describe_schema(schema: DataType) -> Dict[str, Any]:

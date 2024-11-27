@@ -1,4 +1,4 @@
-from core.Common import DataType
+from core.DataTypes.Common import DataType
 
 from core.Exceptions import UnsupportedTypeError, ConversionError, ValidationError
 import re

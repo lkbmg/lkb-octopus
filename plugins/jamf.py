@@ -385,21 +385,14 @@ class JamfAdapter(HttpRequests.HttpExecutor):
         elif method in {"POST", "PUT", "PATCH", "DELETE"} and payload:
             request_args["data"] = json.dumps(payload)
 
-        # Debugging the request
-        logging.debug(f"Request: {method} {endpoint}")
-        logging.debug(f"Headers: {headers}")
-        logging.debug(f"Params: {params}, Payload: {payload}")
 
         try:
             response = self.request(endpoint, **request_args)
-
-            # Check if JSON is returned
-            if "application/json" in response.headers.get("Content-Type", ""):
-                return response.json()
+            return response.json()
 
             # Fallback to raw response for non-JSON
-            logging.warning(f"Non-JSON response received for '{object_type}': {response.text}")
-            return response.text
+            #logging.warning(f"Non-JSON response received for '{object_type}': {response.text}")
+            #return response.text
 
         except Exception as e:
             logging.error(f"Failed to interact with '{object_type}' (Method: {method}, Endpoint: {endpoint}): {e}")

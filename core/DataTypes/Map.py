@@ -1,7 +1,7 @@
 from datetime import datetime, date, time, timedelta
 from decimal import Decimal, InvalidOperation
 
-from core.Common import DataType
+from core.DataTypes.Common import DataType
 from core.DataTypes.Schema import SchemaHelper
 from core.Exceptions import DataTypeError, ConversionError
 from core.DataTypes.Types import (

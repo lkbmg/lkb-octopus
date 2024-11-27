@@ -1,4 +1,4 @@
-from core.Common import DataType
+from core.DataTypes.Common import DataType
 
 class BaseNullType(DataType):
     """Base class for all null types."""

@@ -1,4 +1,5 @@
 # core/DataType/Types.py
+from core.DataTypes.Common import DataType
 from core.DataTypes.Numeric import NumericType, IntegerType, FloatType, DecimalType, NumericNullType
 from core.DataTypes.Categorical import CategoricalType, BooleanType, StringType, BinaryType, CategoricalNullType
 from core.DataTypes.Temporal import TemporalType, DateType, DatetimeType, TimeType, DurationType, TemporalNullType
@@ -6,6 +7,7 @@ from core.DataTypes.Nested import NestedType, ListType, StructType, NestedNullTy
 from core.DataTypes.Null import BaseNullType
 
 __all__ = [
+    "DataType",
     "NumericType", "IntegerType", "FloatType", "DecimalType",
     "CategoricalType", "BooleanType", "StringType", "BinaryType",
     "TemporalType", "DateType", "DatetimeType", "TimeType", "DurationType",
